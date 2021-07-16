@@ -1,0 +1,53 @@
+---
+# tasks file for LAMP
+- name: Install LAMP packages
+  block:
+  - name: linux-extras install
+    command: amazon-linux-extras install -y lamp-mariadb10.2-php7.2 php7.2 
+  - name: yum install 
+    yum:
+      name:
+        - httpd
+        - mariadb-server
+        - MySQL-python
+        - mod_ssl
+      state: present
+      update_cache: yes
+  - name: Start httpd service
+    systemd:
+      name: httpd 
+      state: started
+- name: Unarchive php zip file 
+  unarchive:
+    src: '{{ zip_archive }}'
+    dest: /var/www/html
+    remote_src: yes
+- name: Add ec2-user to httpd group
+  user:
+    name: ec2-user
+    append: yes 
+    groups: apache
+- name: Change /var/www ownership
+  file:
+    path: /var/www 
+    owner: ec2-user
+    group: apache
+    mode: u+rwx,g+rx,o+rx
+    recurse: yes
+- name: MySQL secure installation
+  block:
+  - name: Start mariadb service
+    systemd:
+      name: mariadb
+      state: started
+  - name: Deletes anonymous user
+    mysql_user: 
+      user: "" 
+      state: absent
+      host_all: yes
+  - name: Set user and password 
+    mysql_user:
+      name: root
+      password: '{{ mysql_password }}'
+      host_all: yes
+  
